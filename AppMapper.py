@@ -15,7 +15,7 @@ os.chdir(directory)
 
 web_paths = queue.SimpleQueue()
 
-#go through all files and directories in local web app
+# go through all files and directories in local web app directory
 for r, d, f in os.walk("."):
     for files in f:
         remote_path = "%s/%s" % (r, files)
@@ -23,6 +23,7 @@ for r, d, f in os.walk("."):
             remote_path = remote_path[1:]
         if os.path.splitext(files)[1] not in filters:
             web_paths.put(remote_path)
+
 
 def test_remote():
     pool = urllib3.PoolManager()
@@ -43,8 +44,8 @@ def test_remote():
         except urllib3.exceptions.HTTPError as e:
             print("Failed %s" % e)
 
+
 for i in range(threads):
     print("Spawning thread: %d" % i)
     t = threading.Thread(target=test_remote())
     t.start()
-
