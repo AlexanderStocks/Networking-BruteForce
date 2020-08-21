@@ -4,33 +4,33 @@ from urllib import parse, error
 import queue
 import threading
 
-threads = 5
-target_url = "http://testphp.vulnweb.com"
-wordslist_file = "/tmp/all.txt"  # words list from SVNDigger
+noThreads = 5
+targetAddr = "http://testphp.vulnweb.com"
+wordsFile = "/tmp/all.txt"  # words list from SVNDigger
 resume = None
-user_agent = "Mozilla/5.0 (X11; Linux x86_64; rv:19.0) Gecko/20100101 Firefox/19.0"
+UAHeader = "Mozilla/5.0 (X11; Linux x86_64; rv:19.0) Gecko/20100101 Firefox/19.0"
 
 
-def dir_bruter(word_queue, extensions=None):
-    while not word_queue.empty():
-        attempt = word_queue.get()
+def directoryBruter(words, extensions=None):
+    while not words.empty():
+        currAttempt = words.get()
 
-        attempt_list = []
-        # if no file extension then diretory
-        if "." not in attempt:
-            attempt_list.append("/%s/" % attempt)
+        attempts = []
+        # if no file extension then directory
+        if "." not in currAttempt:
+            attempts.append("/%s/" % currAttempt)
         else:
-            attempt_list.append("/%s" % attempt)
+            attempts.append("/%s" % currAttempt)
         # apply each extensions wanting to test
         if extensions:
             for extension in extensions:
-                attempt_list.append("/%s%s" % (attempt, extension))
+                attempts.append("/%s%s" % (currAttempt, extension))
 
-        for brute in attempt_list:
-            url = "%s%s" % (target_url, urllib.parse.quote(brute))
+        for attempt in attempts:
+            url = "%s%s" % (targetAddr, urllib.parse.quote(attempt))
 
             try:
-                headers = {"User-Agent": user_agent}
+                headers = {"User-Agent": UAHeader}
 
                 poolManager = urllib3.PoolManager()
 
@@ -46,10 +46,10 @@ def dir_bruter(word_queue, extensions=None):
                     print("!!! %d => %s" % (int(err.code), url))
 
 
-def build_wordlist(wordslist_file):
-    fd = open(wordslist_file, "rb")
-    raw_words = fd.readlines()
-    fd.close()
+def buildWords(wordsFile):
+    file = open(wordsFile, "rb")
+    raw_words = file.readlines()
+    file.close()
 
     found_resume = False
     words = queue.SimpleQueue()
@@ -70,9 +70,9 @@ def build_wordlist(wordslist_file):
     return words
 
 
-word_queue = build_wordlist(wordslist_file)
+words = buildWords(wordsFile)
 extensions = [".php", ".bak", ".orig", ".inc"]
 
-for i in range(threads):
-    t = threading.Thread(target=dir_bruter, args=(word_queue, extensions,))
+for i in range(noThreads):
+    t = threading.Thread(target=directoryBruter, args=(words, extensions,))
     t.start()
