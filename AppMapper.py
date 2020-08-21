@@ -3,32 +3,32 @@ import threading
 import os
 import urllib3
 
-threads = 8
+noThreads = 8
 
 target = "http://www.google.com"
-directory = "/Users/Alex/Downloads/joomla-3.1.1"
+appLocation = "/Users/Alex/Downloads/joomla-3.1.1"
 
 # list of filters not interested in
-filters = [".jpg", ".gif", ".png", ".css"]
+ignoreFilters = [".jpg", ".gif", ".png", ".css"]
 
-os.chdir(directory)
+os.chdir(appLocation)
 
-web_paths = queue.SimpleQueue()
+paths = queue.SimpleQueue()
 
-# go through all files and directories in local web app directory
+# go through all files and directories in local web app location
 for r, d, f in os.walk("."):
     for files in f:
         remote_path = "%s/%s" % (r, files)
         if remote_path.startswith("."):
             remote_path = remote_path[1:]
-        if os.path.splitext(files)[1] not in filters:
-            web_paths.put(remote_path)
+        if os.path.splitext(files)[1] not in ignoreFilters:
+            paths.put(remote_path)
 
 
-def test_remote():
+def grabPaths():
     pool = urllib3.PoolManager()
-    while not web_paths.empty():
-        path = web_paths.get()
+    while not paths.empty():
+        path = paths.get()
         url = "%s%s" % (target, path)
 
         request = pool.request('GET', url)
@@ -45,7 +45,7 @@ def test_remote():
             print("Failed %s" % e)
 
 
-for i in range(threads):
+for i in range(noThreads):
     print("Spawning thread: %d" % i)
-    t = threading.Thread(target=test_remote())
+    t = threading.Thread(target=grabPaths())
     t.start()
